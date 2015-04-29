@@ -1,0 +1,22 @@
+<?xml version="1.0" ?>
+
+<launch>
+    <rosparam 
+        command="load" 
+        file="$(find Zumo2Compet)/config/zumo.yaml" 
+    />
+
+    <param 
+        name="robot_description" 
+        textfile="$(find Zumo2Compet)/urdf/zumo.urdf" 
+    />
+
+    <node 
+        name="rviz" 
+        pkg="rviz" 
+        type="rviz" 
+        args="-d $(find Zumo2Compet)/rviz/zumo.rviz" 
+    />
+    
+</launch>
+
