@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <robot name="Zumo de Compet">
-    <link name="base_link">
+    <link name="base_link"/>
+    <link name="base">
         <visual>
             <origin rpy="0 0 0" xyz="0 0 0"/>
             <geometry>
@@ -11,4 +12,11 @@
             </material>
         </visual>
     </link>
+    
+    <joint name="joint1" type="fixed">
+        <parent link="base_link"/>
+        <child link="base"/>
+        
+    </joint>
+  
 </robot>
