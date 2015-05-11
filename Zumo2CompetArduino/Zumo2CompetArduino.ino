@@ -1,19 +1,27 @@
 #include <Wire.h>
+#include <ZumoBuzzer.h>
 #include <ZumoMotors.h>
+#include <Pushbutton.h>
+#include <QTRSensors.h>
 #include <ZumoReflectanceSensorArray.h>
-
+#define LED 13
 float A=6000;
 float B=76;
+int seuil=0;
+
+// these might need to be tuned for different motor types
+#define REVERSE_SPEED     150 // 0 is stopped, 400 is full speed
+#define TURN_SPEED        150
+#define FORWARD_SPEED     150
+#define REVERSE_DURATION  200 // ms
+#define TURN_DURATION     300 // ms
 
 int AvantDistPin = 1;     
 int ArriereDistPin =3;
 int GaucheDistPin = 0;
 int DroiteDistPin = 2;
-int GaucheReflPin = 4;
-int DroiteReflPin = 5;
 
 int val = 0;           
-
 
 long timer=0;
 int vmax = 350;
@@ -21,31 +29,41 @@ int vright = 0;
 int vleft = 0;
 
 ZumoMotors motors;
+ZumoBuzzer buzzer;
+Pushbutton button(ZUMO_BUTTON); // pushbutton on pin 12
+ZumoReflectanceSensorArray reflectanceSensors;
+
+// Define an array for holding sensor values.
+#define NUM_SENSORS 3
+unsigned int sensorValues[NUM_SENSORS];
+byte pins[] = {4, 11, 5};
 
 void setup() {
  Serial.begin(9600);
- pinMode (DroiteReflPin, INPUT);
- pinMode (GaucheReflPin, INPUT);
+
+ reflectanceSensors.init(pins, 3);
+ buzzer.playNote(NOTE_G(4), 500, 15);  calibration ();
+ //seuil=350;
+ buzzer.playNote(NOTE_G(4), 500, 15);  
+ waitForButtonAndCountDown();
  
 }
 void loop()
 {
-//  motors.setRightSpeed(vright);
-//  motors.setLeftSpeed(vleft);
-  delay(10);
+  
+  if (button.isPressed())
+  {
+    // if button is pressed, stop and wait for another press to go again
+    motors.setSpeeds(0, 0);
+    button.waitForRelease();
+    waitForButtonAndCountDown();
+  }
+  
+  reflectanceSensors.readLine(sensorValues);
  //Envoie les infos de la centrale
-  timer = millis();
-  Serial.print("!");
-  Serial.print("AN: timer ");Serial.print(timer); 
-  Serial.print(", vl ");Serial.print (vleft);
-  Serial.print (", vr ");Serial.print (vright);
-  Serial.print (", av");Serial.print (dist(AvantDistPin));
-  Serial.print (", ar");Serial.print (dist(ArriereDistPin));
-  Serial.print (", le");Serial.print (dist(GaucheDistPin));
-  Serial.print (", ri");Serial.print (dist(DroiteDistPin));
-  Serial.print (", Solleft");Serial.print (digitalRead(GaucheReflPin));
-  Serial.print (", Solright");Serial.print (digitalRead(DroiteReflPin));
-  Serial.println();  
+  envoie();
+  detectbordure(seuil);
+  
 }
 
 float dist(int pin)
@@ -58,8 +76,83 @@ float dist(int pin)
     sensorsum=sensorsum+sensorvalue;
     }
    mean=A/(sensorsum/n-B);
-  
   return mean;
+}
 
+void calibration()
+{
+  delay(500);
+  pinMode(13, OUTPUT);
+  digitalWrite(13, HIGH);        // turn on LED to indicate we are in calibration mode
+  unsigned long startTime = millis();
+  Serial.println("CALIBRATION...");
+  while(millis() - startTime < 10000)   // make the calibration take 10 seconds
+  {reflectanceSensors.calibrate();}
+  digitalWrite(13, LOW);         // turn off LED to indicate we are through with calibration
+  // print the calibration minimum values measured when emitters were on
+  Serial.begin(9600);
+  for (byte i = 0; i < NUM_SENSORS; i++)
+  {Serial.print(reflectanceSensors.calibratedMinimumOn[i]);Serial.print(' ');}
+  Serial.println();
+  // print the calibration maximum values measured when emitters were on
+  for (byte i = 0; i < NUM_SENSORS; i++)
+  {Serial.print(reflectanceSensors.calibratedMaximumOn[i]);Serial.print(' ');}
+  Serial.println();Serial.println();delay(1000);
+  seuil=500;
+}
+
+void waitForButtonAndCountDown()
+{
+  digitalWrite(LED, HIGH);
+  button.waitForButton();
+  digitalWrite(LED, LOW);
+  // play audible countdown
+  for (int i = 0; i < 3; i++)
+  {delay(1000);buzzer.playNote(NOTE_G(3), 200, 15);}
+  delay(1000);
+  buzzer.playNote(NOTE_G(4), 500, 15);  
+  delay(1000);
+}
+
+void envoie()
+{
+timer = millis();
+  Serial.print("!");
+  Serial.print("AN: timer ");Serial.print(timer); 
+  Serial.print(", vl ");Serial.print (vleft);
+  Serial.print (", vr ");Serial.print (vright);
+  Serial.print (", av ");Serial.print (dist(AvantDistPin));
+  Serial.print (", ar ");Serial.print (dist(ArriereDistPin));
+  Serial.print (", le ");Serial.print (dist(GaucheDistPin));
+  Serial.print (", ri ");Serial.print (dist(DroiteDistPin));
+  Serial.print (", Solleft ");Serial.print (sensorValues[0]);
+  Serial.print (", Solright ");Serial.print (sensorValues[2]);
+  Serial.println();  
+}
+void detectbordure(int seuil)
+{
+if (sensorValues[0] > seuil)
+  {
+    // if leftmost sensor detects line, reverse and turn to the right
+    motors.setSpeeds(-REVERSE_SPEED, -REVERSE_SPEED);
+    delay(REVERSE_DURATION);
+    motors.setSpeeds(TURN_SPEED, -TURN_SPEED);
+    delay(TURN_DURATION);
+    motors.setSpeeds(FORWARD_SPEED, FORWARD_SPEED);
+  }
+  else if (sensorValues[2] > seuil)
+  {
+    // if rightmost sensor detects line, reverse and turn to the left
+    motors.setSpeeds(-REVERSE_SPEED, -REVERSE_SPEED);
+    delay(REVERSE_DURATION);
+    motors.setSpeeds(-TURN_SPEED, TURN_SPEED);
+    delay(TURN_DURATION);
+    motors.setSpeeds(FORWARD_SPEED, FORWARD_SPEED);
+  }
+  else
+  {
+    // otherwise, go straight
+    motors.setSpeeds(FORWARD_SPEED, FORWARD_SPEED);
+  }
 }
 
