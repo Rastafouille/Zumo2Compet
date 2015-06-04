@@ -13,13 +13,15 @@ int seuil=0;
 #define REVERSE_SPEED     150 // 0 is stopped, 400 is full speed
 #define TURN_SPEED        150
 #define FORWARD_SPEED     150
-#define REVERSE_DURATION  200 // ms
-#define TURN_DURATION     300 // ms
+#define REVERSE_DURATION  400 // ms
+#define TURN_DURATION     400 // ms
 
 int AvantDistPin = 1;     
 int ArriereDistPin =3;
 int GaucheDistPin = 0;
 int DroiteDistPin = 2;
+
+int distAdv = 15;
 
 int val = 0;           
 
@@ -39,31 +41,36 @@ unsigned int sensorValues[NUM_SENSORS];
 byte pins[] = {4, 11, 5};
 
 void setup() {
- Serial.begin(9600);
-
- reflectanceSensors.init(pins, 3);
- buzzer.playNote(NOTE_G(4), 500, 15);  calibration ();
- //seuil=350;
- buzzer.playNote(NOTE_G(4), 500, 15);  
- waitForButtonAndCountDown();
+ Serial.println("## INITIALISATION serial com");Serial.begin(9600); delay (2000);
+ Serial.println("## INITIALISATION reflectance sensors");reflectanceSensors.init(pins, 3);
+ buzzer.playNote(NOTE_G(4), 500, 9);  
+ Serial.println("## INITIALISATION calibration");
+ calibration ();
+ seuil=350;
+ buzzer.playNote(NOTE_G(4), 500, 9);  
+ Serial.println("## Wait For Button to start");waitForButtonAndCountDown();
  
 }
 void loop()
 {
-  
+  Serial.println("## GOGOGO !!!");
+
   if (button.isPressed())
-  {
+  {Serial.println("## STOP !");
     // if button is pressed, stop and wait for another press to go again
     motors.setSpeeds(0, 0);
     button.waitForRelease();
-    waitForButtonAndCountDown();
+    Serial.println("## Wait For Button to restart");waitForButtonAndCountDown();
   }
-  
   reflectanceSensors.readLine(sensorValues);
  //Envoie les infos de la centrale
   envoie();
   detectbordure(seuil);
-  
+  Serial.println(dist(AvantDistPin));
+  if (dist(AvantDistPin)<=distAdv)
+    //AVANCE
+    {motors.setSpeeds(FORWARD_SPEED, FORWARD_SPEED);}
+  else {detectadv();}
 }
 
 float dist(int pin)
@@ -76,7 +83,7 @@ float dist(int pin)
     sensorsum=sensorsum+sensorvalue;
     }
    mean=A/(sensorsum/n-B);
-  return mean;
+  return mean; //en cm
 }
 
 void calibration()
@@ -105,12 +112,13 @@ void waitForButtonAndCountDown()
 {
   digitalWrite(LED, HIGH);
   button.waitForButton();
+  Serial.println("## Button pressed");
   digitalWrite(LED, LOW);
   // play audible countdown
   for (int i = 0; i < 3; i++)
-  {delay(1000);buzzer.playNote(NOTE_G(3), 200, 15);}
+  {delay(1000);buzzer.playNote(NOTE_G(3), 200, 9);}
   delay(1000);
-  buzzer.playNote(NOTE_G(4), 500, 15);  
+  buzzer.playNote(NOTE_G(4), 500, 9);  
   delay(1000);
 }
 
@@ -154,5 +162,12 @@ if (sensorValues[0] > seuil)
     // otherwise, go straight
     motors.setSpeeds(FORWARD_SPEED, FORWARD_SPEED);
   }
+}
+
+void detectadv ()
+{
+ while (dist(AvantDistPin)>=distAdv)
+  //ROTATION
+    {motors.setSpeeds(TURN_SPEED, -TURN_SPEED);delay(50);Serial.println(dist(AvantDistPin));}
 }
 
