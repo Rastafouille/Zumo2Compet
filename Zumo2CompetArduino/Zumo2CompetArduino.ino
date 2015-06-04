@@ -13,6 +13,7 @@ int seuil=0;
 #define REVERSE_SPEED     150 // 0 is stopped, 400 is full speed
 #define TURN_SPEED        150
 #define FORWARD_SPEED     150
+#define FORWARD_SPEED2    300
 #define REVERSE_DURATION  400 // ms
 #define TURN_DURATION     400 // ms
 
@@ -21,7 +22,7 @@ int ArriereDistPin =3;
 int GaucheDistPin = 0;
 int DroiteDistPin = 2;
 
-int distAdv = 15;
+int distAdv = 40;
 
 int val = 0;           
 
@@ -49,12 +50,12 @@ void setup() {
  seuil=350;
  buzzer.playNote(NOTE_G(4), 500, 9);  
  Serial.println("## Wait For Button to start");waitForButtonAndCountDown();
- 
+   Serial.println("## GOGOGO !!!");
+  motors.setSpeeds(FORWARD_SPEED2, FORWARD_SPEED2);
+  delay(300);
 }
 void loop()
 {
-  Serial.println("## GOGOGO !!!");
-
   if (button.isPressed())
   {Serial.println("## STOP !");
     // if button is pressed, stop and wait for another press to go again
@@ -69,7 +70,7 @@ void loop()
   Serial.println(dist(AvantDistPin));
   if (dist(AvantDistPin)<=distAdv)
     //AVANCE
-    {motors.setSpeeds(FORWARD_SPEED, FORWARD_SPEED);}
+    {motors.setSpeeds(FORWARD_SPEED2, FORWARD_SPEED2);}
   else {detectadv();}
 }
 
