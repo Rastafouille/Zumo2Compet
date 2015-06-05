@@ -1,3 +1,8 @@
+//A FAIRE
+//- interruption sur les capteurs de reflectance
+//- sil ne detecte rien sur un tour, avancer un peu
+
+
 #include <Wire.h>
 #include <ZumoBuzzer.h>
 #include <ZumoMotors.h>
