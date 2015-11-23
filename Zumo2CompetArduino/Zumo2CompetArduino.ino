@@ -1,3 +1,5 @@
+
+
 //A FAIRE
 //- interruption sur les capteurs de reflectance
 //- sil ne detecte rien sur un tour, avancer un peu
@@ -13,6 +15,9 @@
 float A=6000;
 float B=76;
 int seuil=0;
+int BatteryPin = 1;
+float batterylevel = 0.0;
+float BatterySeuil = 3.0;
 
 // these might need to be tuned for different motor types
 #define REVERSE_SPEED     150 // 0 is stopped, 400 is full speed
@@ -22,8 +27,8 @@ int seuil=0;
 #define REVERSE_DURATION  400 // ms
 #define TURN_DURATION     400 // ms
 
-int AvantDistPin = 1;     
-int ArriereDistPin =3;
+int AvantDistPin = 3;     
+//int ArriereDistPin =1; battery level dessus !
 int GaucheDistPin = 0;
 int DroiteDistPin = 2;
 
@@ -47,7 +52,9 @@ unsigned int sensorValues[NUM_SENSORS];
 byte pins[] = {4, 11, 5};
 
 void setup() {
- Serial.println("## INITIALISATION serial com");Serial.begin(9600); delay (2000);
+ Serial.begin(9600); delay (2000);Serial.println("## INITIALISATION serial com done");
+ BatteryLevel();
+ Serial.print( "## BATTERY LEVEL = ");Serial.print(batterylevel);Serial.println (" VOLTS");
  Serial.println("## INITIALISATION reflectance sensors");reflectanceSensors.init(pins, 3);
  buzzer.playNote(NOTE_G(4), 500, 9);  
  Serial.println("## INITIALISATION calibration");
@@ -55,12 +62,12 @@ void setup() {
  seuil=350;
  buzzer.playNote(NOTE_G(4), 500, 9);  
  Serial.println("## Wait For Button to start");waitForButtonAndCountDown();
-   Serial.println("## GOGOGO !!!");
-  motors.setSpeeds(FORWARD_SPEED2, FORWARD_SPEED2);
-  delay(300);
+ motors.setSpeeds(FORWARD_SPEED2, FORWARD_SPEED2);
+ delay(300);
 }
 void loop()
 {
+  BatteryLevel();
   if (button.isPressed())
   {Serial.println("## STOP !");
     // if button is pressed, stop and wait for another press to go again
@@ -72,7 +79,7 @@ void loop()
  //Envoie les infos de la centrale
   envoie();
   detectbordure(seuil);
-  Serial.println(dist(AvantDistPin));
+  //Serial.println(dist(AvantDistPin));
   if (dist(AvantDistPin)<=distAdv)
     //AVANCE
     {motors.setSpeeds(FORWARD_SPEED2, FORWARD_SPEED2);}
@@ -92,6 +99,11 @@ float dist(int pin)
   return mean; //en cm
 }
 
+
+void BatteryLevel()
+{ batterylevel = float(analogRead(BatteryPin))/1024*5;}  
+  
+
 void calibration()
 {
   delay(500);
@@ -99,7 +111,7 @@ void calibration()
   digitalWrite(13, HIGH);        // turn on LED to indicate we are in calibration mode
   unsigned long startTime = millis();
   Serial.println("CALIBRATION...");
-  while(millis() - startTime < 10000)   // make the calibration take 10 seconds
+  while(millis() - startTime < 1000)   // make the calibration take 10 seconds
   {reflectanceSensors.calibrate();}
   digitalWrite(13, LOW);         // turn off LED to indicate we are through with calibration
   // print the calibration minimum values measured when emitters were on
@@ -122,10 +134,10 @@ void waitForButtonAndCountDown()
   digitalWrite(LED, LOW);
   // play audible countdown
   for (int i = 0; i < 3; i++)
-  {delay(1000);buzzer.playNote(NOTE_G(3), 200, 9);}
-  delay(1000);
+  {Serial.println(5-i);delay(1000);buzzer.playNote(NOTE_G(3), 200, 9);}
+  Serial.println("2");delay(1000);Serial.println("1");
   buzzer.playNote(NOTE_G(4), 500, 9);  
-  delay(1000);
+  delay(1000);Serial.println("## GOGOGO !!!");
 }
 
 void envoie()
@@ -133,10 +145,11 @@ void envoie()
 timer = millis();
   Serial.print("!");
   Serial.print("AN: timer ");Serial.print(timer); 
+  Serial.print( ",bat ");Serial.print(batterylevel);
   Serial.print(", vl ");Serial.print (vleft);
   Serial.print (", vr ");Serial.print (vright);
   Serial.print (", av ");Serial.print (dist(AvantDistPin));
-  Serial.print (", ar ");Serial.print (dist(ArriereDistPin));
+  //Serial.print (", ar ");Serial.print (dist(ArriereDistPin));
   Serial.print (", le ");Serial.print (dist(GaucheDistPin));
   Serial.print (", ri ");Serial.print (dist(DroiteDistPin));
   Serial.print (", Solleft ");Serial.print (sensorValues[0]);
@@ -174,6 +187,6 @@ void detectadv ()
 {
  while (dist(AvantDistPin)>=distAdv)
   //ROTATION
-    {motors.setSpeeds(TURN_SPEED, -TURN_SPEED);delay(50);Serial.println(dist(AvantDistPin));}
+    {motors.setSpeeds(TURN_SPEED, -TURN_SPEED);delay(50);}
 }
 
