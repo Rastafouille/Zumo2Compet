@@ -108,7 +108,7 @@ float dist(int pin_dist)
     {n++;int sensorvalue=analogRead(pin_dist);
     sensorsum=sensorsum+sensorvalue;
     }
-   mean=A/(sensorsum/n-B);
+   mean=abs(A/(sensorsum/n-B));
   return mean; //en cm
 }
 
@@ -138,7 +138,7 @@ void calibration()
   for (byte i = 0; i < NUM_SENSORS; i++)
   {Serial.print(reflectanceSensors.calibratedMaximumOn[i]);Serial.print(' ');}
   Serial.println();Serial.println();delay(1000);
-  seuil=500;
+  //seuil=500;
 }
 
 void waitForButtonAndCountDown()
@@ -202,14 +202,15 @@ if (sensorValues[0] < seuil)
 void detectadv ()
 { Serial.println( "## DETECTION ADVERSAIRE en cours...");
  long time=millis();
- while (dist(AvantDistPin)>=distAdv && (millis()-time)<2000)
+ while (dist(AvantDistPin)>=distAdv)// && (millis()-time)<2000)
   //ROTATION
     {
-      Serial.println((millis()-time));
+      //Serial.println((millis()-time));
     motors.setSpeeds(TURN_SPEED, -TURN_SPEED);delay(5);
     }
+    Serial.println("## ADVERSAIRE detectee !!");
 
-    motors.setSpeeds(FORWARD_SPEED, FORWARD_SPEED);delay(300);
+    //motors.setSpeeds(FORWARD_SPEED, FORWARD_SPEED);delay(300);
 
 }
 
