@@ -20,9 +20,9 @@ float batterylevel = 0.0;
 float BatterySeuil = 3.0;
 
 // these might need to be tuned for different motor types
-#define REVERSE_SPEED     150 // 0 is stopped, 400 is full speed
+#define REVERSE_SPEED     400 // 0 is stopped, 400 is full speed
 #define TURN_SPEED        200
-#define FORWARD_SPEED     150
+#define FORWARD_SPEED     400
 #define FORWARD_SPEED2    400
 #define REVERSE_DURATION  400 // ms
 #define TURN_DURATION     400 // ms
@@ -32,7 +32,7 @@ int AvantDistPin = 0;
 int GaucheDistPin = 3;
 int DroiteDistPin = 2;
 
-int distAdv = 30;
+int distAdv = 40;
 
 int val = 0;           
 
